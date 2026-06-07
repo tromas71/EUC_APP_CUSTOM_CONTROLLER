@@ -14,7 +14,7 @@ long_description = "A native dashboard built with BeeWare and Toga for monitorin
 sources = [
     "src/euc_app",
 ]
-# Define the Python packages your app needs here
+# Define generic python requirements across platforms here
 requires = [
     "toga-android",
 ]
