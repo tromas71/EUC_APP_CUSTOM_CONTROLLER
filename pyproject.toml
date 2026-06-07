@@ -1,0 +1,5 @@
+[tool.flet]
+app_dir = "."
+main_script_file = "main.py"
+org = "com.yourname"
+product = "dashboard_app"
