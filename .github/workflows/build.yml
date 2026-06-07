@@ -6,7 +6,7 @@ on:
 
 jobs:
   android-build:
-    runs-on: ubuntu-latest
+    runs-runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code Base
@@ -40,7 +40,7 @@ jobs:
     - name: Install System Packaging Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y git gridengine-client
+        sudo apt-get install -y git
         python -m pip install --upgrade pip
         pip install briefcase
 
@@ -51,10 +51,10 @@ jobs:
     - name: Compile and Package Artifacts
       run: |
         briefcase build android --no-input
-        briefcase package android --no-sign --no-input
+        briefcase package android --no-input
 
     - name: Preserve Compiled App Binaries
       uses: actions/upload-artifact@v4
       with:
         name: beeware-android-apk
-        path: android/Gradle/*/*/*.apk
+        path: build/euc_app/android/gradle/app/build/outputs/apk/debug/*.apk
