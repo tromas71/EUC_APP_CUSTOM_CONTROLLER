@@ -2,10 +2,17 @@ import asyncio
 import random
 import toga
 from toga.style import Pack
-from toga.style.pack import BOLD, CENTER, COLUMN, LEFT, ROW
+from toga.style.pack import BOLD, COLUMN, LEFT, ROW
+from toga.colors import GREEN, BLUE, RED, ORANGE, GRAY
+
+# 🎨 DESIGN CONFIGURATION
+BG_COLOR = "#1A1A1A"       # Mid-dark background canvas
+CARD_COLOR = "#262626"     # Slightly lighter dark gray for metric blocks
+TEXT_MUTED = "#888888"     # Muted gray text for status/titles
+TEXT_LIGHT = "#FFFFFF"     # Crisp white text
 
 
-class EUCTelemetryApp(toga.App):
+class euc_app(toga.App):
 
     def startup(self):
         # Dictionary holding state
@@ -17,44 +24,50 @@ class EUCTelemetryApp(toga.App):
             "status": "Disconnected",
         }
 
-        # Main containing Box (Vertical Stack)
-        main_box = toga.Box(style=Pack(direction=COLUMN, padding=16))
+        # Root layout box
+        main_box = toga.Box(
+            style=Pack(
+                direction=COLUMN, 
+                padding=16, 
+                background_color=BG_COLOR, 
+                flex=1
+            )
+        )
 
         # Title Section
         title_label = toga.Label(
-            "Vehicle Telemetry",
-            style=Pack(font_size=22, font_weight=BOLD, padding_bottom=4),
+            "Begode A1 LongRange",
+            style=Pack(font_size=22, font_weight=BOLD, padding_bottom=4, color=TEXT_LIGHT, background_color=BG_COLOR)
         )
         self.status_label = toga.Label(
             f"Status: {self.telemetry_data['status']}",
-            style=Pack(font_size=11, font_style="italic", padding_bottom=16),
+            style=Pack(font_size=11, font_style="italic", padding_bottom=16, color=TEXT_MUTED, background_color=BG_COLOR)
         )
 
         main_box.add(title_label)
         main_box.add(self.status_label)
 
-        # 4 Full-Width Horizontal Rows
+        # 4 Metric fields matching your layout framework
         self.lbl_speed = toga.Label(
-            "0.0 km/h", style=Pack(font_size=24, font_weight=BOLD, color="#4caf50")
+            "0.0 km/h", style=Pack(font_size=24, font_weight=BOLD, color=TEXT_LIGHT, background_color=CARD_COLOR)
         )
         row1 = self.make_metric_row("Speed:", self.lbl_speed)
 
         self.lbl_voltage = toga.Label(
-            "12.6 V", style=Pack(font_size=24, font_weight=BOLD, color="#2196f3")
+            "12.6 V", style=Pack(font_size=24, font_weight=BOLD, color=TEXT_LIGHT, background_color=CARD_COLOR)
         )
         row2 = self.make_metric_row("Battery Voltage:", self.lbl_voltage)
 
         self.lbl_current = toga.Label(
-            "1.5 A", style=Pack(font_size=24, font_weight=BOLD, color="#f44336")
+            "1.5 A", style=Pack(font_size=24, font_weight=BOLD, color=TEXT_LIGHT, background_color=CARD_COLOR)
         )
         row3 = self.make_metric_row("Current Draw:", self.lbl_current)
 
         self.lbl_temp = toga.Label(
-            "35.2 °C", style=Pack(font_size=24, font_weight=BOLD, color="#ff9800")
+            "35.2 °C", style=Pack(font_size=24, font_weight=BOLD, color=TEXT_LIGHT, background_color=CARD_COLOR)
         )
         row4 = self.make_metric_row("Temperature:", self.lbl_temp)
 
-        # Add each full-width row into the main view
         main_box.add(row1)
         main_box.add(row2)
         main_box.add(row3)
@@ -63,51 +76,70 @@ class EUCTelemetryApp(toga.App):
         # Main window setup
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = main_box
+        
         self.main_window.show()
 
-        # Kick off mobile-safe background task loop
+        # Kick off background data simulation loop
         self.add_background_task(self.simulated_bluetooth_stream)
 
     def make_metric_row(self, title_text, value_label):
-        """Helper to create a full-width row container."""
+        """Helper to create a row block layout with 30px rounded corners on Android."""
         row_box = toga.Box(
             style=Pack(
                 direction=COLUMN,
-                padding=10,
-                background_color="#1e1e1e",
-                padding_bottom=12,
+                padding=12,
+                margin_bottom=14,  # Separation space between rounded corners
+                background_color=CARD_COLOR,
             )
         )
 
         title_label = toga.Label(
             title_text,
             style=Pack(
-                font_size=13, color="#b0bec5", font_weight=BOLD, padding_bottom=4
+                font_size=13, color=TEXT_MUTED, font_weight=BOLD, padding_bottom=4, background_color=CARD_COLOR
             ),
         )
 
-        value_container = toga.Box(style=Pack(direction=ROW, padding_left=4))
+        value_container = toga.Box(
+            style=Pack(direction=ROW, background_color=CARD_COLOR)
+        )
         value_container.add(value_label)
 
         row_box.add(title_label)
         row_box.add(value_container)
+
+        # ✨ Android Native Injection for 30px Rounded Corners
+        try:
+            from android.graphics.drawable import GradientDrawable
+            from android.graphics import Color
+            
+            # Form an Android UI GradientDrawable shape framework
+            shape = GradientDrawable()
+            shape.setShape(GradientDrawable.RECTANGLE)
+            shape.setColor(Color.parseColor(CARD_COLOR))
+            
+            # Force exactly 30 pixels corner radius curvature mapping
+            shape.setCornerRadius(30.0)
+            
+            # Override background properties into the native platform layout engine
+            row_box._impl.native.setBackground(shape)
+        except (ImportError, AttributeError):
+            # Gracefully ignores native calls when running on local Windows developer mode
+            pass
+
         return row_box
 
     async def simulated_bluetooth_stream(self, app):
-        """Asynchronous, safe background execution loop for Android instrumentation."""
+        """Asynchronous background data simulation loop."""
         await asyncio.sleep(1)
         self.status_label.text = "Status: Simulating Bluetooth Stream..."
 
         while True:
-            # Generate mock data
+            # Simulate real-time metrics safely
             self.telemetry_data["speed"] = round(random.uniform(20.0, 65.5), 1)
-            self.telemetry_data["voltage"] = round(
-                random.uniform(11.8, 12.6), 2
-            )
+            self.telemetry_data["voltage"] = round(random.uniform(11.8, 12.6), 2)
             self.telemetry_data["current"] = round(random.uniform(5.0, 22.1), 1)
-            self.telemetry_data["temperature"] = round(
-                random.uniform(34.0, 42.0), 1
-            )
+            self.telemetry_data["temperature"] = round(random.uniform(34.0, 42.0), 1)
 
             # Update interface properties securely
             self.lbl_speed.text = f"{self.telemetry_data['speed']} km/h"
@@ -115,9 +147,8 @@ class EUCTelemetryApp(toga.App):
             self.lbl_current.text = f"{self.telemetry_data['current']} A"
             self.lbl_temp.text = f"{self.telemetry_data['temperature']} °C"
 
-            # Must use async-aware sleep to yield loop handling safely
             await asyncio.sleep(1)
 
 
 def main():
-    return EUCTelemetryApp("EUC Telemetry", "org.example.euctelemetry")
+    return euc_app("EUC Telemetry", "com.example.euc_app")
