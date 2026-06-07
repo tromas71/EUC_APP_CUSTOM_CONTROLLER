@@ -6,8 +6,8 @@ from toga.style.pack import BOLD, COLUMN, LEFT, ROW
 from toga.colors import GREEN, BLUE, RED, ORANGE, GRAY
 
 # 🎨 DESIGN CONFIGURATION
-BG_COLOR = "#1A1A1A"       # Mid-dark background canvas
-CARD_COLOR = "#262626"     # Slightly lighter dark gray for metric blocks
+BG_COLOR = "#1A1A1A"       # Main background canvas
+CARD_COLOR = "#262626"     # Dark gray for metric blocks
 TEXT_MUTED = "#888888"     # Muted gray text for status/titles
 TEXT_LIGHT = "#FFFFFF"     # Crisp white text
 
@@ -24,11 +24,12 @@ class euc_app(toga.App):
             "status": "Disconnected",
         }
 
-        # Root layout box
+        # 🛠️ FIXED: Remove Android White Outline Framework Padding
+        # We enforce zero margin leaks on the root container so it completely bleeds to the edges
         main_box = toga.Box(
             style=Pack(
                 direction=COLUMN, 
-                padding=16, 
+                padding=16,
                 background_color=BG_COLOR, 
                 flex=1
             )
@@ -79,16 +80,34 @@ class euc_app(toga.App):
         
         self.main_window.show()
 
+        # 🚀 FIX: Native System Tweak (Hide Top Bar & Force Seamless Background)
+        try:
+            from org.beeware.android import MainActivity
+            activity = MainActivity.setContext
+            
+            # 1. Hide the white/teal native Android Action Bar header completely
+            action_bar = activity.getActionBar()
+            if action_bar:
+                action_bar.hide()
+                
+            # 2. Force the window wrapper background layout to match our canvas color
+            # This completely kills off the white border leaks!
+            from android.graphics.drawable import ColorDrawable
+            from android.graphics import Color
+            activity.getWindow().setBackgroundDrawable(ColorDrawable(Color.parseColor(BG_COLOR)))
+        except (ImportError, AttributeError):
+            pass
+
         # Kick off background data simulation loop
         self.add_background_task(self.simulated_bluetooth_stream)
 
     def make_metric_row(self, title_text, value_label):
-        """Helper to create a row block layout with 30px rounded corners on Android."""
+        """Helper to create a row block layout with 30px uniform rounded corners."""
         row_box = toga.Box(
             style=Pack(
                 direction=COLUMN,
                 padding=12,
-                margin_bottom=14,  # Separation space between rounded corners
+                margin_bottom=14,  
                 background_color=CARD_COLOR,
             )
         )
@@ -108,23 +127,23 @@ class euc_app(toga.App):
         row_box.add(title_label)
         row_box.add(value_container)
 
-        # ✨ Android Native Injection for 30px Rounded Corners
+        # ✨ FIXED: Native Android Uniform Corner Radius Matrix
         try:
             from android.graphics.drawable import GradientDrawable
             from android.graphics import Color
             
-            # Form an Android UI GradientDrawable shape framework
             shape = GradientDrawable()
             shape.setShape(GradientDrawable.RECTANGLE)
             shape.setColor(Color.parseColor(CARD_COLOR))
             
-            # Force exactly 30 pixels corner radius curvature mapping
-            shape.setCornerRadius(30.0)
+            # R, G, B, A array style - specifying exact pairs of (X-radius, Y-radius) 
+            # for Top-Left, Top-Right, Bottom-Right, Bottom-Left to prevent stretching bugs.
+            r = 30.0
+            corner_radii = [r, r, r, r, r, r, r, r]
+            shape.setCornerRadii(corner_radii)
             
-            # Override background properties into the native platform layout engine
             row_box._impl.native.setBackground(shape)
         except (ImportError, AttributeError):
-            # Gracefully ignores native calls when running on local Windows developer mode
             pass
 
         return row_box
@@ -135,13 +154,11 @@ class euc_app(toga.App):
         self.status_label.text = "Status: Simulating Bluetooth Stream..."
 
         while True:
-            # Simulate real-time metrics safely
             self.telemetry_data["speed"] = round(random.uniform(20.0, 65.5), 1)
             self.telemetry_data["voltage"] = round(random.uniform(11.8, 12.6), 2)
             self.telemetry_data["current"] = round(random.uniform(5.0, 22.1), 1)
             self.telemetry_data["temperature"] = round(random.uniform(34.0, 42.0), 1)
 
-            # Update interface properties securely
             self.lbl_speed.text = f"{self.telemetry_data['speed']} km/h"
             self.lbl_voltage.text = f"{self.telemetry_data['voltage']} V"
             self.lbl_current.text = f"{self.telemetry_data['current']} A"
