@@ -254,10 +254,10 @@ class euc_app(toga.App):
         self.status_label.text = "● Connected — Simulating BT Stream"
 
         while True:
-            spd = round(random.uniform(20.0, 65.5), 1)
-            vlt = round(random.uniform(11.8, 12.6), 2)
-            cur = round(random.uniform(5.0, 22.1), 1)
-            tmp = round(random.uniform(34.0, 42.0), 1)
+            spd = round(random.uniform(24.5, 25.5), 2)
+            vlt = round(random.uniform(82.5, 83.5), 2)
+            cur = round(random.uniform(15, 20), 2)
+            tmp = round(random.uniform(30.0, 32.0), 2)
 
             self.telemetry_data.update(speed=spd, voltage=vlt, current=cur, temperature=tmp)
 
@@ -266,7 +266,7 @@ class euc_app(toga.App):
             self.lbl_current.text = f"{cur} A"
             self.lbl_temp.text = f"{tmp} °C"
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
 
 
 def main():
