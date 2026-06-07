@@ -6,7 +6,6 @@ from toga.style.pack import BOLD, COLUMN, ROW
 
 BG_COLOR = "#0D0D0D"
 CARD_COLOR = "#1C1C1E"
-ACCENT = "#444444"
 TEXT_MUTED = "#666666"
 TEXT_LIGHT = "#F5F5F5"
 TEXT_DIM = "#AAAAAA"
@@ -115,15 +114,6 @@ class euc_app(toga.App):
             )
         )
 
-        accent_bar = toga.Box(
-            style=Pack(
-                height=2,
-                width=32,
-                padding_bottom=8,
-                background_color=ACCENT,
-            )
-        )
-
         lbl_title = toga.Label(
             title_text,
             style=Pack(
@@ -140,7 +130,6 @@ class euc_app(toga.App):
         )
         value_row.add(value_label)
 
-        card.add(accent_bar)
         card.add(lbl_title)
         card.add(value_row)
 
@@ -150,28 +139,52 @@ class euc_app(toga.App):
         return card
 
     def _apply_android_card_bg(self, box):
-        """Apply a rounded rectangle background on Android using native APIs."""
+        """Apply a pixel-perfect rounded rectangle on Android.
+
+        - GradientDrawable for fill, no stroke so zero bleed pixels.
+        - Custom ViewOutlineProvider so hardware composer clips ALL four
+          corners (including bottom-left) against the real composited outline.
+        - Radius derived from actual DisplayMetrics density so it lands on
+          whole physical pixels — no sub-pixel misalignment on FHD+ screens.
+        """
         try:
             from android.graphics.drawable import GradientDrawable
             from android.graphics import Color
+            from android.view import ViewOutlineProvider
+            from android.graphics import Outline
 
+            native = box._impl.native
+
+            # Real display density (1080x2340 FHD+ is typically 2.75)
+            try:
+                dm = native.getContext().getResources().getDisplayMetrics()
+                density = dm.density
+            except Exception:
+                density = 2.75  # safe FHD+ fallback
+
+            # 16 dp → whole physical pixels (no fractional pixel blur)
+            radius_px = float(round(16 * density))
+
+            # Solid fill, no stroke
             shape = GradientDrawable()
             shape.setShape(GradientDrawable.RECTANGLE)
             shape.setColor(Color.parseColor(CARD_COLOR))
+            shape.setCornerRadius(radius_px)
+            native.setBackground(shape)
 
-            # Convert 16dp → px using display density
-            try:
-                from android.content import Context
-                ctx = self.main_window._impl.native.getContext()
-                density = ctx.getResources().getDisplayMetrics().density
-                radius = 16 * density
-            except Exception:
-                radius = 40.0  # fallback
+            # ViewOutlineProvider ensures all 4 corners are clipped by the GPU
+            class RoundedOutline(ViewOutlineProvider):
+                def getOutline(self, view, outline):
+                    outline.setRoundRect(
+                        0, 0,
+                        view.getWidth(), view.getHeight(),
+                        radius_px,
+                    )
 
-            shape.setCornerRadius(radius)
-            box._impl.native.setBackground(shape)
-            box._impl.native.setClipToOutline(True)
-        except (ImportError, AttributeError):
+            native.setOutlineProvider(RoundedOutline())
+            native.setClipToOutline(True)
+
+        except (ImportError, AttributeError, Exception):
             pass  # Desktop / non-Android — no-op
 
     def _android_fullscreen(self):
