@@ -1,93 +1,96 @@
-import flet as ft
-import time
+import toga
+from toga.style import Pack
+from toga.style.pack import COLUMN, ROW, CENTER, BOLD
 import threading
+import time
 import random
 
-# Global state dictionary to hold telemetry metrics
-telemetry_data = {
-    "voltage": 12.6,
-    "temperature": 35.2,
-    "speed": 0.0,
-    "current": 1.5,
-    "status": "Disconnected"
-}
+class EUCTelemetryApp(toga.App):
+    def startup(self):
+        # Dictionary holding state
+        self.telemetry_data = {
+            "speed": 0.0,
+            "voltage": 12.6,
+            "current": 1.5,
+            "temperature": 35.2,
+            "status": "Disconnected"
+        }
 
-def main(page: ft.Page):
-    page.title = "EV Telemetry Dashboard"
-    page.theme_mode = ft.ThemeMode.DARK
-    page.padding = 20
-    page.window_width = 400
-    page.window_height = 800  # Approximating a mobile screen layout
+        # Main containing Box (Vertical Stack)
+        main_box = toga.Box(style=Pack(direction=COLUMN, padding=16))
 
-    # Define visual UI text elements
-    lbl_voltage = ft.Text(f"{telemetry_data['voltage']} V", size=32, weight=ft.FontWeight.BOLD, color=ft.Colors.LIGHT_BLUE_ACCENT_700)
-    lbl_temp = ft.Text(f"{telemetry_data['temperature']} °C", size=32, weight=ft.FontWeight.BOLD, color=ft.Colors.ORANGE_ACCENT_400)
-    lbl_speed = ft.Text(f"{telemetry_data['speed']} km/h", size=32, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_ACCENT_400)
-    lbl_current = ft.Text(f"{telemetry_data['current']} A", size=32, weight=ft.FontWeight.BOLD, color=ft.Colors.RED_ACCENT_400)
-    lbl_status = ft.Text(f"Status: {telemetry_data['status']}", size=14, italic=True, color=ft.Colors.GREY_400)
-
-    # Helper function to generate clean metric container cards
-    def make_metric_card(title, icon, control_element):
-        return ft.Card(
-            expand=True,
-            content=ft.Container(
-                padding=15,
-                content=ft.Column([
-                    ft.Row([
-                        ft.Icon(icon, size=20, color=ft.Colors.BLUE_GREY_200), 
-                        ft.Text(title, size=14, color=ft.Colors.BLUE_GREY_200)
-                    ]),
-                    ft.Container(content=control_element, alignment=ft.Alignment.CENTER, padding=10)
-                ], alignment=ft.MainAxisAlignment.CENTER)
-            )
+        # Title Section
+        title_label = toga.Label(
+            "Vehicle Telemetry",
+            style=Pack(font_size=22, font_weight=BOLD, padding_bottom=4)
         )
-
-    # Dashboard Grid Structure
-    dashboard_grid = ft.Column([
-        ft.Text("Vehicle Telemetry", size=26, weight=ft.FontWeight.BOLD),
-        lbl_status,
-        ft.Divider(height=10, color=ft.Colors.SURFACE_CONTAINER_HIGHEST),
+        self.status_label = toga.Label(
+            f"Status: {self.telemetry_data['status']}",
+            style=Pack(font_size=11, font_style="italic", padding_bottom=12)
+        )
         
-        # Row 1: Speed and Voltage
-        ft.Row([
-            make_metric_card("Speed", ft.Icons.SPEED, lbl_speed),
-            make_metric_card("Battery Voltage", ft.Icons.ELECTRIC_BOLT, lbl_voltage)
-        ], spacing=10),
+        main_box.add(title_label)
+        main_box.add(self.status_label)
+
+        # 4 Separate Rows (Stacked Vertically)
+        self.lbl_speed = toga.Label("0.0 km/h", style=Pack(font_size=24, font_weight=BOLD, color="#4caf50"))
+        row1 = self.make_metric_row("Speed", self.lbl_speed)
+
+        self.lbl_voltage = toga.Label("12.6 V", style=Pack(font_size=24, font_weight=BOLD, color="#2196f3"))
+        row2 = self.make_metric_row("Battery Voltage", self.lbl_voltage)
+
+        self.lbl_current = toga.Label("1.5 A", style=Pack(font_size=24, font_weight=BOLD, color="#f44336"))
+        row3 = self.make_metric_row("Current Draw", self.lbl_current)
+
+        self.lbl_temp = toga.Label("35.2 °C", style=Pack(font_size=24, font_weight=BOLD, color="#ff9800"))
+        row4 = self.make_metric_row("Temperature", self.lbl_temp)
+
+        # Add rows to layout
+        main_box.add(row1)
+        main_box.add(row2)
+        main_box.add(row3)
+        main_box.add(row4)
+
+        # Main window setup
+        self.main_window = toga.MainWindow(title=self.formal_name)
+        self.main_window.content = main_box
+        self.main_window.show()
+
+        # Kickoff native safe background thread execution after startup completes
+        threading.Thread(target=self.simulated_bluetooth_stream, daemon=True).start()
+
+    def make_metric_row(self, title_text, value_label):
+        """Helper to generate a clean, full-width 1-row dashboard component."""
+        row_box = toga.Box(style=Pack(direction=COLUMN, padding=8, background_color="#1e1e1e"))
+        title_label = toga.Label(title_text, style=Pack(font_size=11, color="#b0bec5", padding_bottom=4))
         
-        # Row 2: Current and Temperature
-        ft.Row([
-            make_metric_card("Current Draw", ft.Icons.ELECTRIC_METER, lbl_current),
-            make_metric_card("Temperature", ft.Icons.THERMOSTAT, lbl_temp)
-        ], spacing=10),
-    ], spacing=15)
+        # Center align components inside internal layout container
+        align_container = toga.Box(style=Pack(direction=ROW, justify=CENTER))
+        align_container.add(value_label)
+        
+        row_box.add(title_label)
+        row_box.add(align_container)
+        return row_box
 
-    page.add(dashboard_grid)
-
-    # Background Monitoring Thread
-    def simulated_bluetooth_stream():
-        # Later on, initiate your bluetooth connection handshake here.
-        telemetry_data["status"] = "Simulating Bluetooth Stream..."
-        lbl_status.value = f"Status: {telemetry_data['status']}"
-        page.update()
+    def simulated_bluetooth_stream(self):
+        # Brief sleep interval allowing window threads to fully instantiate
+        time.sleep(1)
+        self.status_label.text = "Status: Simulating Bluetooth Stream..."
 
         while True:
-            # Injecting mock telemetry changes over time
-            telemetry_data["speed"] = round(random.uniform(20.0, 65.5), 1)
-            telemetry_data["voltage"] = round(random.uniform(11.8, 12.6), 2)
-            telemetry_data["current"] = round(random.uniform(5.0, 22.1), 1)
-            telemetry_data["temperature"] = round(random.uniform(34.0, 42.0), 1)
+            # Generate mock data
+            self.telemetry_data["speed"] = round(random.uniform(20.0, 65.5), 1)
+            self.telemetry_data["voltage"] = round(random.uniform(11.8, 12.6), 2)
+            self.telemetry_data["current"] = round(random.uniform(5.0, 22.1), 1)
+            self.telemetry_data["temperature"] = round(random.uniform(34.0, 42.0), 1)
 
-            # Push updates smoothly to the UI rendering engine
-            lbl_speed.value = f"{telemetry_data['speed']} km/h"
-            lbl_voltage.value = f"{telemetry_data['voltage']} V"
-            lbl_current.value = f"{telemetry_data['current']} A"
-            lbl_temp.value = f"{telemetry_data['temperature']} °C"
-            
-            page.update()
-            time.sleep(1)  # Refresh interval rate (1 second)
+            # Thread-safe interface modification via native properties updates
+            self.lbl_speed.text = f"{self.telemetry_data['speed']} km/h"
+            self.lbl_voltage.text = f"{self.telemetry_data['voltage']} V"
+            self.lbl_current.text = f"{self.telemetry_data['current']} A"
+            self.lbl_temp.text = f"{self.telemetry_data['temperature']} °C"
 
-    # Spin up background execution context safely
-    threading.Thread(target=simulated_bluetooth_stream, daemon=True).start()
+            time.sleep(1)
 
-# Modern Flet application launcher method
-ft.run(main)
+def main():
+    return EUCTelemetryApp("EUC Telemetry", "org.example.euctelemetry")
