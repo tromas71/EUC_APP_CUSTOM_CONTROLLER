@@ -86,9 +86,7 @@ class EUCTelemetryApp(toga.App):
             ),
         )
 
-        value_container = toga.Box(
-            style=Pack(direction=ROW, justify=LEFT, padding_left=4)
-        )
+        value_container = toga.Box(style=Pack(direction=ROW, padding_left=4))
         value_container.add(value_label)
 
         row_box.add(title_label)
