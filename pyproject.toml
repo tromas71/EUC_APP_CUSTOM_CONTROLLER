@@ -1,5 +1,40 @@
-[tool.flet]
-app_dir = "."
-main_script_file = "main.py"
-org = "com.yourname"
-product = "dashboard_app"
+[tool.briefcase]
+project_name = "EUC Telemetry"
+bundle = "com.example"
+version = "0.0.1"
+url = "https://example.com/euc-telemetry"
+license = "MIT"
+author = "Your Name"
+author_email = "your-email@example.com"
+
+[tool.briefcase.app.euc_app]
+formal_name = "EUC Telemetry"
+description = "EV Telemetry Dashboard"
+long_description = "A native dashboard built with BeeWare and Toga for monitoring EV metrics."
+sources = [
+    "src/euc_app",
+]
+# Define the Python packages your app needs here
+requires = [
+    "toga-android",
+]
+
+[tool.briefcase.app.euc_app.macOS]
+requires = [
+    "toga-cocoa",
+]
+
+[tool.briefcase.app.euc_app.linux]
+requires = [
+    "toga-gtk",
+]
+
+[tool.briefcase.app.euc_app.windows]
+requires = [
+    "toga-winforms",
+]
+
+[tool.briefcase.app.euc_app.android]
+requires = [
+    "toga-android",
+]
