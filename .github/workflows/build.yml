@@ -1,40 +1,60 @@
-name: Build Flet APK
+name: Build BeeWare Android APK
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch: 
+  # Pulls trigger execution logic completely off automatic triggers
+  workflow_dispatch: # Enables manual on-click triggers inside the GUI portal
 
 jobs:
-  build:
+  android-build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout Code Base
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Set up System Python Environment
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip' # Caches your pip dependencies (briefcase, etc.)
 
-    - name: Set up Java
+    - name: Set up Java JDK Engine
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Install dependencies
+    # Optimization: Cache Android Gradle packages to save compilation time
+    - name: Setup Gradle Cache
+      uses: gradle/actions/setup-gradle@v4
+
+    # Optimization: Cache the internal Android SDK tooling briefcase downloads
+    - name: Cache Android SDK Tools
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/briefcase
+        key: ${{ runner.os }}-briefcase-sdk-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-briefcase-sdk-
+
+    - name: Install System Packaging Tools
       run: |
+        sudo apt-get update
+        sudo apt-get install -y git gridengine-client
         python -m pip install --upgrade pip
-        pip install flet
+        pip install briefcase
 
-    - name: Build APK
+    - name: Initialize Android Template Wrapper
       run: |
-        flet build apk --yes
+        briefcase create android --no-input
 
-    - name: Upload APK Artifact
+    - name: Compile and Package Artifacts
+      run: |
+        briefcase build android --no-input
+        briefcase package android --no-sign --no-input
+
+    - name: Preserve Compiled App Binaries
       uses: actions/upload-artifact@v4
       with:
-        name: flet-android-app
-        path: build/apk/*.apk
+        name: beeware-android-apk
+        path: android/Gradle/*/*/*.apk
